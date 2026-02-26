@@ -25,10 +25,13 @@ def criar_baseline():
         os.makedirs(PASTA_ALVO)
         
     print("[*] A calcular hashes para criar a baseline...")
-    for ficheiro in os.listdir(PASTA_ALVO):
-        caminho = os.path.join(PASTA_ALVO, ficheiro)
-        if os.path.isfile(caminho):
-            baseline[caminho] = calcular_hash(caminho)
+    
+    # CORREÇÃO: Usar os.walk corretamente desempacotando o tuple
+    for root, dirs, files in os.walk(PASTA_ALVO):
+        for ficheiro in files:
+            caminho = os.path.join(root, ficheiro)
+            if os.path.isfile(caminho):
+                baseline[caminho] = calcular_hash(caminho)
             
     with open(FICHEIRO_BASE, 'w') as f:
         json.dump(baseline, f)
@@ -49,32 +52,38 @@ def monitorizar():
             time.sleep(2) # Espera 2 segundos entre cada verificação
             
             # 1. Verificar ficheiros alterados ou apagados
-            for caminho, hash_original in baseline.items():
+            # Usamos list(baseline.keys()) para evitar erros ao modificar o dicionário no loop
+            for caminho in list(baseline.keys()):
                 if not os.path.exists(caminho):
                     print(f"[ALERTA VERMELHO] Ficheiro apagado: {caminho}")
+                    del baseline[caminho] # Para de avisar
                 else:
                     hash_atual = calcular_hash(caminho)
-                    if hash_atual != hash_original:
+                    if hash_atual != baseline[caminho]:
                         print(f"[ALERTA VERMELHO] Ficheiro modificado: {caminho}")
+                        baseline[caminho] = hash_atual # Atualiza a memória para parar o spam
             
-            # 2. Verificar ficheiros novos
-            for ficheiro in os.listdir(PASTA_ALVO):
-                caminho = os.path.join(PASTA_ALVO, ficheiro)
-                if caminho not in baseline and os.path.isfile(caminho):
-                    print(f"[AVISO] Ficheiro novo detetado: {caminho}")
+            # 2. Verificar ficheiros novos com os.walk
+            for root, dirs, files in os.walk(PASTA_ALVO):
+                for ficheiro in files:
+                    caminho = os.path.join(root, ficheiro)
+                    if caminho not in baseline and os.path.isfile(caminho):
+                        print(f"[AVISO] Ficheiro novo detetado: {caminho}")
+                        baseline[caminho] = calcular_hash(caminho) # Adiciona à memória
                     
     except KeyboardInterrupt:
         print("\n[*] Monitorização parada pelo utilizador.")
 
-# Menu muito simples
-print("=== Monitor de Integridade de Ficheiros (HIDS) ===")
-print("A) Criar nova Baseline (Faz isto na primeira vez)")
-print("B) Iniciar Monitorização")
-escolha = input("Escolhe uma opção (A/B): ").upper()
+# Menu
+if __name__ == "__main__":
+    print("=== Monitor de Integridade de Ficheiros (HIDS) ===")
+    print("A) Criar nova Baseline (Faz isto na primeira vez)")
+    print("B) Iniciar Monitorização")
+    escolha = input("Escolhe uma opção (A/B): ").strip().upper()
 
-if escolha == 'A':
-    criar_baseline()
-elif escolha == 'B':
-    monitorizar()
-else:
-    print("Opção inválida.")
+    if escolha == 'A':
+        criar_baseline()
+    elif escolha == 'B':
+        monitorizar()
+    else:
+        print("Opção inválida.")
