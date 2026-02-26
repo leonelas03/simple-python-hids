@@ -22,3 +22,7 @@ A lightweight and efficient Host-based Intrusion Detection System built with Pyt
 
 ## 🎓 About
 Project developed as a practical exercise in cybersecurity, file integrity monitoring, and Python automation.
+
+## 👥 Authors
+* **Leonardo Silva** - [leonelas03](https://github.com/leonelas03)
+* **Guilherme Escórcio** - [escorcio05](https://github.com/escorcio05)
